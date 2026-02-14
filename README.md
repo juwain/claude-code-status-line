@@ -6,21 +6,21 @@ A custom status line script for [Claude Code](https://claude.com/claude-code) th
 
 This status line script displays:
 
-- **📁 Current Working Directory** - Shows your current path (with `~` for home directory)
-- **⏰ Current Time** - Displays time in HH:MM:SS format
-- **🌿 Git Information** - Shows branch name and change indicators:
-  - 🔴 Red dot - Unstaged changes
-  - 🟢 Green dot - Staged changes
-- **📊 Context Window Stats** - Displays:
+- **Current Working Directory** - Shows your current path (with `~` for home directory)
+- **Current Time** - Displays time in HH:MM:SS format
+- **Git Information** - Shows branch name and change indicators:
+  - Red dot (`●`) - Unstaged changes
+  - Green dot (`●`) - Staged changes
+- **Context Window Stats** - Displays:
   - Model ID (e.g., `claude-sonnet-4-5`)
-  - Token usage (current/max in thousands)
+  - Token usage with decimal precision for hundreds (e.g., `45k.5k/200k`)
   - Used percentage
 
 ## Screenshot
 
 Example status line output:
 ```
-~/work/my-project [15:30:45] [±main ●●] [claude-sonnet-4-5 | 45k/200k, 22%]
+~/work/my-project [15:30:45] [±main ●●] [claude-sonnet-4-5 | 45k.5k/200k, 22%]
 ```
 
 ## Requirements
@@ -95,13 +95,13 @@ Restart your Claude Code session to see the new status line in action.
 The script receives JSON input from Claude Code via stdin containing:
 - Workspace information (current directory)
 - Model details (model ID)
-- Context window statistics (token usage, capacity)
+- Context window statistics (context size, used percentage)
 
 It processes this data and outputs a formatted status line with:
 - **Color coding**: Different colors for different information types
 - **Git status detection**: Checks for staged/unstaged changes
-- **Performance optimization**: Uses Git flags to skip optional locks
-- **Smart formatting**: Compresses large numbers (shows tokens in thousands)
+- **Performance optimization**: Uses Git flags to skip optional locks (`fsmonitor=false`)
+- **Smart formatting**: Token display with decimal precision (e.g., `45k.5k` for 45,500 tokens)
 
 ## Customization
 
@@ -112,7 +112,7 @@ You can modify `statusline-command.sh` to customize:
 The script uses ANSI color codes:
 - `\033[1m` - Bold
 - `\033[36m` - Cyan (context info)
-- `\033[32m` - Green (git branch)
+- `\033[32m` - Green (git branch symbol)
 - `\033[1;32m` - Bold green (staged changes)
 - `\033[1;31m` - Bold red (unstaged changes)
 - `\033[0m` - Reset
@@ -125,21 +125,33 @@ You can extract additional data from the JSON input. Available fields include:
 echo "$input" | jq '.'
 ```
 
-Common fields:
+Common fields used by the script:
 - `.workspace.current_dir` - Current directory
 - `.model.id` - Model identifier
-- `.context_window.total_input_tokens` - Input tokens used
-- `.context_window.total_output_tokens` - Output tokens used
 - `.context_window.context_window_size` - Maximum context size
 - `.context_window.used_percentage` - Percentage of context used
 
 ### Change Time Format
 
-Modify line 8 to use a different date format:
+Modify line 4 to use a different date format:
 ```bash
 time=$(date "+%H:%M:%S")  # Current: 24-hour format
 time=$(date "+%I:%M %p")   # 12-hour format with AM/PM
 time=$(date "+%Y-%m-%d %H:%M")  # Include date
+```
+
+### Token Display Precision
+
+The script shows token usage with decimal precision:
+- `45k/200k` - Exact thousands (45,000 tokens)
+- `45k.5k/200k` - With hundreds (45,500 tokens)
+
+To remove decimal precision, modify lines 10 and 14:
+```bash
+# Remove this line:
+tokens_dec=$((tokens_total / 100 % 10))
+
+# And simplify the printf to remove the .$tokens_dec reference
 ```
 
 ## Troubleshooting
